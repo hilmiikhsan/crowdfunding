@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"crowdfunding/auth"
 	"crowdfunding/helper"
 	"crowdfunding/user"
 	"fmt"
@@ -11,11 +12,13 @@ import (
 
 type userHandler struct {
 	userService user.Service
+	authService auth.Service
 }
 
-func NewUserHandler(userService user.Service) *userHandler {
+func NewUserHandler(userService user.Service, authService auth.Service) *userHandler {
 	return &userHandler{
 		userService,
+		authService,
 	}
 }
 
@@ -26,7 +29,7 @@ func (h *userHandler) RegisterUser(c *gin.Context) {
 	if err != nil {
 		errors := helper.ErrorFormatValidation(err)
 		errorMessage := gin.H{"errors": errors}
-		response := helper.APIResponse("Failed Register User", http.StatusUnprocessableEntity, "error", errorMessage)
+		response := helper.APIResponse("Register User Failed", http.StatusUnprocessableEntity, "error", errorMessage)
 		c.JSON(http.StatusUnprocessableEntity, response)
 		return
 	}
@@ -35,12 +38,19 @@ func (h *userHandler) RegisterUser(c *gin.Context) {
 	if err != nil {
 		errors := helper.ErrorFormatValidation(err)
 		errorMessage := gin.H{"errors": errors}
-		response := helper.APIResponse("Failed Register User", http.StatusBadRequest, "error", errorMessage)
+		response := helper.APIResponse("Register User Failed", http.StatusBadRequest, "error", errorMessage)
 		c.JSON(http.StatusBadRequest, response)
 		return
 	}
 
-	formatter := user.UserFormat(userData, "tokentokentokentokentoken")
+	token, err := h.authService.GenerateToken(userData.ID)
+	if err != nil {
+		response := helper.APIResponse("Register User Failed", http.StatusBadRequest, "error", err.Error())
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	formatter := user.UserFormat(userData, token)
 	response := helper.APIResponse("Success Register User", http.StatusOK, "success", formatter)
 	c.JSON(http.StatusOK, response)
 }
@@ -52,7 +62,7 @@ func (h *userHandler) Login(c *gin.Context) {
 	if err != nil {
 		errors := helper.ErrorFormatValidation(err)
 		errorMessage := gin.H{"errors": errors}
-		response := helper.APIResponse("Failed Login", http.StatusUnprocessableEntity, "error", errorMessage)
+		response := helper.APIResponse("Login Failed", http.StatusUnprocessableEntity, "error", errorMessage)
 		c.JSON(http.StatusUnprocessableEntity, response)
 		return
 	}
@@ -60,12 +70,19 @@ func (h *userHandler) Login(c *gin.Context) {
 	userData, err := h.userService.Login(input)
 	if err != nil {
 		errorMessage := gin.H{"errors": err.Error()}
-		response := helper.APIResponse("Failed Login", http.StatusUnprocessableEntity, "error", errorMessage)
+		response := helper.APIResponse("Login Failed", http.StatusUnprocessableEntity, "error", errorMessage)
 		c.JSON(http.StatusUnprocessableEntity, response)
 		return
 	}
 
-	formatter := user.UserFormat(userData, "tokentokentokentokentoken")
+	token, err := h.authService.GenerateToken(userData.ID)
+	if err != nil {
+		response := helper.APIResponse("Login Failed", http.StatusBadRequest, "error", err.Error())
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	formatter := user.UserFormat(userData, token)
 	response := helper.APIResponse("Success Login", http.StatusOK, "success", formatter)
 	c.JSON(http.StatusOK, response)
 }
