@@ -1,10 +1,13 @@
 package campaign
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
 type Repository interface {
 	FindAll() ([]Campaign, error)
 	FindByUserID(userID int) ([]Campaign, error)
+	FindByID(id int) (Campaign, error)
 }
 
 type repository struct {
@@ -37,4 +40,15 @@ func (r *repository) FindByUserID(userID int) ([]Campaign, error) {
 	}
 
 	return campaigns, nil
+}
+
+func (r *repository) FindByID(id int) (Campaign, error) {
+	campaignData := Campaign{}
+
+	err := r.db.Preload("User").Preload("CampaignImages").Where("id = ?", id).Find(&campaignData).Error
+	if err != nil {
+		return campaignData, err
+	}
+
+	return campaignData, nil
 }

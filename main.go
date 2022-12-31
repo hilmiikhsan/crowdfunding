@@ -38,7 +38,7 @@ func main() {
 
 	// route
 	router := gin.Default()
-
+	router.Static("/images", "./images")
 	api := router.Group("/api/v1")
 
 	// auth
@@ -49,6 +49,7 @@ func main() {
 
 	// campaign
 	api.GET("/campaign/get", campaignHandler.GetCampaigns)
+	api.GET("/campaign/get/:id", campaignHandler.GetCampaignByID)
 
 	router.Run()
 }
